@@ -14,7 +14,7 @@ app = FastAPI(title="Agentic Orchestration Builder API")
 
 import os
 bus, store = InMemoryBus(), InMemoryStore()
-audit = HttpAuditSink()
+audit = HttpAuditSink(endpoint="http://localhost:8001/decisions")
 engine = WorkflowEngine(bus, store, on_decision=audit.emit)
 oidc = OIDC()
 

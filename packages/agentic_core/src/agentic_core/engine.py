@@ -43,7 +43,7 @@ class WorkflowEngine:
     def __init__(self, bus: AbstractEventBus, store: AbstractEventStore, *, policy: Optional[PolicyGuard] = None, on_decision: Optional[Callable[[DecisionRecord], None]] = None, lease: Optional[AbstractLease] = None):
         self.bus, self.store = bus, store
         evaluator = OpaPolicyEvaluator()
-        self.policy = policy or PolicyGuard(check_fn=lambda ctx, node, policies: True)
+        self.policy = policy or PolicyGuard(check_fn=lambda ctx, node, policies, edge: True)
         self.on_decision = on_decision
         self.lease = lease or self._auto_lease()
 

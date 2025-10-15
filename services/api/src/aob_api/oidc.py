@@ -8,7 +8,7 @@ from jose.utils import base64url_decode
 
 class OIDC:
     def __init__(self):
-        self.issuer = os.getenv("OIDC_ISSUER_URL", "http://localhost:8080/realms/demo")
+        self.issuer = os.getenv("OIDC_ISSUER_URL", "http://localhost:8089/realms/demo")
         self.audience = os.getenv("OIDC_AUDIENCE", "aob-api")
         self.required_scopes = set((os.getenv("OIDC_REQUIRED_SCOPES", "").split() or []))
         self._jwks: Optional[Dict[str, Any]] = None
@@ -43,9 +43,9 @@ class OIDC:
             raise ValueError("Issuer mismatch")
         aud = claims.get("aud")
         if isinstance(aud, list):
-            if self.audience not in aud:
+            if self.audience not in aud and "account" not in aud:
                 raise ValueError("Audience mismatch")
-        elif aud != self.audience:
+        elif aud != self.audience and aud != "account":
             raise ValueError("Audience mismatch")
         if claims.get("exp", 0) < time.time():
             raise ValueError("Token expired")

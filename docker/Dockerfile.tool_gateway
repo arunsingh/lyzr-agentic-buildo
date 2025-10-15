@@ -3,5 +3,5 @@ WORKDIR /app
 COPY services/tool_gateway /app/services/tool_gateway
 RUN pip install --no-cache-dir fastapi uvicorn
 EXPOSE 8088
-CMD ["uvicorn", "tool_gateway.app:app", "--host", "0.0.0.0", "--port", "8088"]
+CMD ["uvicorn", "services.tool_gateway.src.tool_gateway.app:app", "--host", "0.0.0.0", "--port", "8088"]
 

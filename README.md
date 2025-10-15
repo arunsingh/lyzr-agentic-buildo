@@ -30,11 +30,12 @@ Endpoints (HATEOAS)
 
 ### Tech stack
 - **Language**: Python 3.11
-- **API**: FastAPI
+- **API**: FastAPI with OIDC/JWT validation
 - **Eventing**: Kafka (dev: in‑memory queue also available)
 - **State**: Postgres (dev: in‑memory store also available)
 - **Policy**: OPA (Open Policy Agent)
-- **Observability**: OpenTelemetry (OTLP/HTTP)
+- **Auth**: Keycloak (OIDC/OAuth2), JWT validation with JWKS
+- **Observability**: OpenTelemetry (OTLP/HTTP) with distributed tracing
 - **Containers/Orchestration**: Docker, Helm, Kubernetes
 
 ### Enterprise 3‑layer architecture
@@ -139,6 +140,7 @@ Services:
 - Agent Registry: `http://localhost:8081`
 - Session Service: `http://localhost:8082`
 - Metering: `http://localhost:8083`
+- Keycloak: `http://localhost:8089` (admin/admin)
 - Postgres: `localhost:5432`
   - Note: in compose we map to host port `55432` to avoid conflicts; use DSN `postgres://postgres:postgres@localhost:55432/aob` when connecting from host tools.
 - Kafka: `localhost:9092`
@@ -149,26 +151,64 @@ Notes:
 - The outbox worker is enabled and publishes to Kafka when Postgres and Kafka are healthy.
 
 ### OIDC with Keycloak (local)
-- Compose includes Keycloak at `http://localhost:8080` (admin/admin).
+- Compose includes Keycloak at `http://localhost:8089` (admin/admin).
 - Create a realm `demo`, a public client `aob-api` with redirect `http://localhost:8000` and audience `aob-api`.
 - Obtain a token:
 ```bash
 curl -s -X POST \
   -H 'content-type: application/x-www-form-urlencoded' \
   -d 'grant_type=client_credentials&client_id=aob-api&client_secret=XXXX' \
-  http://localhost:8080/realms/demo/protocol/openid-connect/token | jq -r .access_token
+  http://localhost:8089/realms/demo/protocol/openid-connect/token | jq -r .access_token
 ```
 - Call API with the token:
 ```bash
 curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/
 ```
 - Env vars:
-  - `OIDC_ISSUER_URL=http://localhost:8080/realms/demo`
+  - `OIDC_ISSUER_URL=http://localhost:8089/realms/demo`
   - `OIDC_AUDIENCE=aob-api`
   - `OIDC_REQUIRED_SCOPES=` (space-delimited)
 
+#### Keycloak Setup Steps
+1. Access Keycloak admin console: `http://localhost:8089`
+2. Login with `admin/admin`
+3. Create realm `demo`:
+   - Click "Create realm"
+   - Name: `demo`
+   - Click "Create"
+4. Create client `aob-api`:
+   - Go to "Clients" → "Create client"
+   - Client ID: `aob-api`
+   - Client type: `OpenID Connect`
+   - Valid redirect URIs: `http://localhost:8000/*`
+   - Click "Save"
+5. Configure client settings:
+   - Access Type: `public`
+   - Standard Flow Enabled: `ON`
+   - Direct Access Grants Enabled: `ON`
+   - Service Accounts Enabled: `ON`
+   - Authorization Enabled: `ON`
+   - Click "Save"
+6. Create user (optional):
+   - Go to "Users" → "Create new user"
+   - Username: `testuser`
+   - Email: `test@example.com`
+   - Click "Save"
+   - Go to "Credentials" tab → "Set password"
+   - Password: `testpass`
+   - Temporary: `OFF`
+   - Click "Save"
+
+#### Dependencies
+The API service requires these Python packages for OIDC:
+- `python-jose[cryptography]>=3.3.0` - JWT validation and JWKS handling
+- `httpx>=0.27.0` - Async HTTP client for JWKS fetching
+
 ### Auth & tenancy
-- API reads `X-API-Key` header and derives a tenant identifier (demo only). Bring your own IdP and OAuth2/OIDC to enable scopes and proper tenancy enforcement.
+- API supports both OIDC Bearer tokens (preferred) and `X-API-Key` header (fallback for local dev).
+- OIDC tokens are validated against Keycloak JWKS with configurable issuer, audience, and scopes.
+- Tenant is derived from token claims (`tenant_id`, `realm`, or issuer realm).
+- For production: configure proper OIDC issuer, enforce required scopes, and implement tenant-scoped data access.
 
 ### Tool gateway policy enforcement
 - All tool calls should pass through `services/tool_gateway` (`POST /call`). OPA is enforced before proxying (deny-by-default model). Edit `policies/aob.rego` to tailor rules.
@@ -204,17 +244,63 @@ curl -s -X POST localhost:8000/workflows/resume -H 'content-type: application/js
   -d '{"workflow_id":"demo","approval":true}'
 ```
 
+#### With OIDC Authentication
+1) Get token from Keycloak:
+```bash
+TOKEN=$(curl -s -X POST \
+  -H 'content-type: application/x-www-form-urlencoded' \
+  -d 'grant_type=client_credentials&client_id=aob-api' \
+  http://localhost:8089/realms/demo/protocol/openid-connect/token | jq -r .access_token)
+```
+2) Use token in API calls:
+```bash
+curl -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' \
+  -d '{"workflow_id":"demo","text":"hello agentic","approval":false}' \
+  localhost:8000/workflows/start
+```
+
 ## Observability (OpenTelemetry)
-- OTEL spans are created per node execution.
+- OTEL spans are created per node execution with distributed tracing across services.
 - Default exporter: OTLP/HTTP. Configure via env vars:
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 export OTEL_RESOURCE_ATTRIBUTES=service.name=agentic-core
 ```
-Use any OTLP collector (e.g., OpenTelemetry Collector, Tempo, Jaeger via OTLP).
+- Use any OTLP collector (e.g., OpenTelemetry Collector, Tempo, Jaeger via OTLP).
+
+### Distributed Tracing Spans
+The platform creates spans for:
+- **API requests**: FastAPI middleware creates root spans for each HTTP request
+- **Workflow execution**: Engine creates spans for each node execution
+- **Policy evaluation**: OPA calls are traced with decision results
+- **Tool/model calls**: Gateway services trace external calls
+- **Database operations**: Postgres adapter traces query execution
+- **Event publishing**: Kafka bus traces message publishing
+
+### Span Attributes
+Each span includes:
+- `service.name`: Service identifier (e.g., `aob-api`, `tool-gateway`)
+- `workflow.id`: Workflow correlation ID
+- `node.id`: Node identifier being executed
+- `tenant.id`: Tenant identifier from auth
+- `policy.decision`: OPA decision result
+- `tool.name`: Tool being called (for tool gateway spans)
+- `model.name`: Model being used (for model gateway spans)
+
+### Visualization
+Connect to your preferred observability platform:
+- **Jaeger**: `http://localhost:16686` (if using Jaeger all-in-one)
+- **Grafana Tempo**: Configure Tempo as OTLP receiver
+- **Datadog**: Use Datadog OTLP endpoint
+- **New Relic**: Use New Relic OTLP endpoint
+- **Honeycomb**: Use Honeycomb OTLP endpoint
 
 ## Environment variables
 - `OTEL_EXPORTER_OTLP_ENDPOINT` (default: none) – OTLP/HTTP endpoint, e.g. `http://localhost:4318`
+- `OTEL_RESOURCE_ATTRIBUTES` (default: none) – Resource attributes, e.g. `service.name=agentic-core`
+- `OIDC_ISSUER_URL` (default: `http://localhost:8080/realms/demo`) – Keycloak issuer URL
+- `OIDC_AUDIENCE` (default: `aob-api`) – Expected JWT audience
+- `OIDC_REQUIRED_SCOPES` (default: none) – Space-delimited required scopes
 - `AOB_OPA_URL` (optional) – override OPA base URL (default: `http://localhost:8181`)
 - `AOB_AUDIT_ENDPOINT` (optional) – DecisionRecord sink (default: `http://localhost:8085/decisions`)
 - `AOB_KAFKA_BOOTSTRAP` (optional) – Kafka bootstrap when using `KafkaBus`
@@ -297,9 +383,11 @@ Values (`charts/agentic-orch/values.yaml`) include optional sidecars:
 - Harden OPA (bundles, signature verification, fine‑grained policies).
 
 ## Troubleshooting
-- API not starting: ensure ports `8000/8081/8082/8083/8085/8181/9092/6379/5432` are free.
+- API not starting: ensure ports `8000/8080/8081/8082/8083/8085/8181/9092/6379/5432` are free.
   - If port 5432 is in use on host, compose maps Postgres to `55432` (container remains `5432`). Update local DSNs accordingly.
 - OPA decisions always allow: confirm `policies/aob.rego` is mounted and OPA at `:8181`.
 - No spans: set `OTEL_EXPORTER_OTLP_ENDPOINT` to a running collector.
 - Events empty: you may be using in‑memory store; switch to Postgres adapter for persistence.
 - Kafka pull errors: we use Confluent images; ensure `docker compose pull` succeeds or check network proxy. If you previously used Bitnami tags, run `docker compose down -v` to clear.
+- OIDC token validation fails: verify Keycloak is running, realm/client configured correctly, and `OIDC_ISSUER_URL` matches your setup.
+- JWKS fetch errors: check network connectivity to Keycloak and verify the issuer URL is correct.

@@ -3,5 +3,5 @@ WORKDIR /app
 COPY services/audit_service /app/services/audit_service
 RUN pip install --no-cache-dir fastapi uvicorn
 EXPOSE 8085
-CMD ["uvicorn", "audit_service.app:app", "--host", "0.0.0.0", "--port", "8085"]
+CMD ["uvicorn", "services.audit_service.src.audit_service.app:app", "--host", "0.0.0.0", "--port", "8085"]
 

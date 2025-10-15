@@ -3,5 +3,5 @@ WORKDIR /app
 COPY services/execution_service /app/services/execution_service
 RUN pip install --no-cache-dir fastapi uvicorn
 EXPOSE 8086
-CMD ["uvicorn", "execution_service.app:app", "--host", "0.0.0.0", "--port", "8086"]
+CMD ["uvicorn", "services.execution_service.src.execution_service.app:app", "--host", "0.0.0.0", "--port", "8086"]
 
