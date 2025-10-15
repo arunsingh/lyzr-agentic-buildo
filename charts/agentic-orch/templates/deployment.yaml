@@ -1,0 +1,59 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "agentic-orch.fullname" . }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: {{ include "agentic-orch.name" . }} }
+  template:
+    metadata:
+      labels: { app: {{ include "agentic-orch.name" . }} }
+    spec:
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports: [{ containerPort: 8000 }]
+          readinessProbe:
+            httpGet: { path: /, port: 8000 }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /, port: 8000 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+{{- if .Values.agentRegistry.enabled }}
+        - name: agent-registry
+          image: "{{ .Values.agentRegistry.image }}"
+          ports: [{ containerPort: {{ .Values.agentRegistry.port }} }]
+{{- end }}
+{{- if .Values.sessionService.enabled }}
+        - name: session-service
+          image: "{{ .Values.sessionService.image }}"
+          ports: [{ containerPort: {{ .Values.sessionService.port }} }]
+{{- end }}
+{{- if .Values.meteringService.enabled }}
+        - name: metering-service
+          image: "{{ .Values.meteringService.image }}"
+          ports: [{ containerPort: {{ .Values.meteringService.port }} }]
+{{- end }}
+{{- if .Values.auditService.enabled }}
+        - name: audit-service
+          image: "{{ .Values.auditService.image }}"
+          ports: [{ containerPort: {{ .Values.auditService.port }} }]
+{{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "agentic-orch.fullname" . }}
+spec:
+  type: {{ .Values.service.type }}
+  selector: { app: {{ include "agentic-orch.name" . }} }
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: 8000
+      protocol: TCP
+      name: http

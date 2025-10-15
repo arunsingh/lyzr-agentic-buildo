@@ -1,0 +1,36 @@
+epics:
+  - key: AOB-EP-1
+    title: Execution Isolation & Scheduler
+    outcome: Per-invocation isolated runners with retries and DLQ
+    issues:
+      - key: AOB-1
+        title: Execution service MVP (enqueue, schedule, status)
+      - key: AOB-2
+        title: Runner pod template & quotas
+      - key: AOB-3
+        title: Retry/backoff and DLQ wiring
+  - key: AOB-EP-2
+    title: Model & Tool Gateways
+    outcome: Centralized model serving and MCP proxy with OPA/DLP
+    issues:
+      - key: AOB-4
+        title: vLLM deployment and router
+      - key: AOB-5
+        title: MCP proxy with OPA allowlist and redaction
+  - key: AOB-EP-3
+    title: Snapshot/Replay & Shadow Runs
+    outcome: Deterministic re-projection with snapshots and shadow evaluations
+    issues:
+      - key: AOB-6
+        title: Snapshot cadence and storage
+      - key: AOB-7
+        title: Replay and shadow-run APIs
+  - key: AOB-EP-4
+    title: Visual Orchestrator & HITL Console
+    outcome: Drag-and-drop editor and approvals dashboard
+    issues:
+      - key: AOB-8
+        title: Graph editor (frontend)
+      - key: AOB-9
+        title: Session viewer with spans and events
+

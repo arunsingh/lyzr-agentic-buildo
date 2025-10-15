@@ -1,0 +1,9 @@
+
+FROM python:3.11-slim
+WORKDIR /app
+# Install API and core from local paths (editable)
+COPY packages/agentic_core /app/packages/agentic_core
+COPY services/api /app/services/api
+RUN pip install --no-cache-dir -e /app/packages/agentic_core -e /app/services/api
+EXPOSE 8000
+CMD ["python","-m","aob_api.app"]

@@ -1,0 +1,16 @@
+
+[project]
+name = "agentic-adapters"
+version = "0.1.0"
+description = "Adapters for Agentic Orchestration Builder (Kafka/Postgres)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["asyncpg>=0.29.0", "aiokafka>=0.10.0", "agentic-core==0.1.0"]
+authors = [{name="AOB", email="engineering@example.com"}]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

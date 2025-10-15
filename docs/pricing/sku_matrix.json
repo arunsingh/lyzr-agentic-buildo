@@ -1,0 +1,21 @@
+{
+  "skus": [
+    {"id": "platform.core", "meters": ["tenants", "peak_qps", "storage_gb"]},
+    {"id": "exec.serverless", "meters": ["invocations", "compute_sec"]},
+    {"id": "exec.reserved", "meters": ["reserved_vCPU", "reserved_RAM", "uptime"]},
+    {"id": "model.oss", "meters": ["tokens_in", "tokens_out"]},
+    {"id": "model.premium", "meters": ["provider_bill_through"]},
+    {"id": "tools.connectors", "meters": ["tool_calls"]},
+    {"id": "skills.vertical", "meters": ["seats", "assets"]},
+    {"id": "policy.compliance", "meters": ["policy_evals"]},
+    {"id": "obs.pack", "meters": ["gb_ingested", "retention_days"]},
+    {"id": "ops.sla", "meters": ["tier"]}
+  ],
+  "primary_meters": ["tokens_in", "tokens_out", "tool_calls", "graph_steps", "compute_sec", "storage_gb", "bundles_built", "eval_runs"],
+  "examples": [
+    {"name": "starter", "includes": ["platform.core", "exec.serverless", "model.oss", "tools.connectors"], "caps": {"qps": 10, "connectors": 5}},
+    {"name": "pro", "includes": ["platform.core", "exec.reserved", "model.oss", "model.premium", "tools.connectors", "obs.pack"], "caps": {"runners": {"vCPU": 4, "RAM_GB": 16}, "connectors": 15, "retention_days": 30}},
+    {"name": "enterprise", "includes": ["platform.core", "exec.reserved", "model.oss", "model.premium", "tools.connectors", "policy.compliance", "skills.vertical", "obs.pack", "ops.sla"], "caps": {"multi_region": true, "retention_days": 90, "sla": "99.99"}}
+  ]
+}
+

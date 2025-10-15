@@ -1,0 +1,31 @@
+
+image:
+  repository: aob-api
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8000
+
+resources: {}
+
+agentRegistry:
+  enabled: true
+  image: aob/agent-registry:latest
+  port: 8081
+
+sessionService:
+  enabled: true
+  image: aob/session-service:latest
+  port: 8082
+
+meteringService:
+  enabled: true
+  image: aob/metering-service:latest
+  port: 8083
+
+auditService:
+  enabled: true
+  image: aob/audit-service:latest
+  port: 8085

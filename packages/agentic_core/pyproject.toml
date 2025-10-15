@@ -1,0 +1,16 @@
+
+[project]
+name = "agentic-core"
+version = "0.1.0"
+description = "Core engine for Agentic Orchestration Builder"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["pydantic>=2.8.0", "pyyaml>=6.0.1", "fastapi>=0.115.0"]
+authors = [{name="AOB", email="engineering@example.com"}]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

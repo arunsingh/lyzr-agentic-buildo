@@ -1,0 +1,7 @@
+
+FROM python:3.11-slim
+WORKDIR /app
+COPY packages/agentic_core /app/packages/agentic_core
+COPY services/worker /app/services/worker
+RUN pip install --no-cache-dir -e /app/packages/agentic_core -e /app/services/worker
+CMD ["python","-m","aob_worker.runner"]

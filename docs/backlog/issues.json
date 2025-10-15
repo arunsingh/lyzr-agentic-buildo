@@ -1,0 +1,14 @@
+{
+  "issues": [
+    {"key": "AOB-1", "title": "Execution service MVP", "status": "todo"},
+    {"key": "AOB-2", "title": "Runner pod template & quotas", "status": "todo"},
+    {"key": "AOB-3", "title": "Retry/backoff and DLQ wiring", "status": "todo"},
+    {"key": "AOB-4", "title": "vLLM deployment and router", "status": "todo"},
+    {"key": "AOB-5", "title": "MCP proxy with OPA allowlist and redaction", "status": "todo"},
+    {"key": "AOB-6", "title": "Snapshot cadence and storage", "status": "todo"},
+    {"key": "AOB-7", "title": "Replay and shadow-run APIs", "status": "todo"},
+    {"key": "AOB-8", "title": "Graph editor (frontend)", "status": "todo"},
+    {"key": "AOB-9", "title": "Session viewer with spans and events", "status": "todo"}
+  ]
+}
+

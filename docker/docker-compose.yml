@@ -1,0 +1,96 @@
+version: "3.9"
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - audit
+
+  agent_registry:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.agent_registry
+    ports:
+      - "8081:8081"
+
+  session_service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.session_service
+    ports:
+      - "8082:8082"
+
+  metering:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.metering_service
+    ports:
+      - "8083:8083"
+
+  audit:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.audit_service
+    ports:
+      - "8085:8085"
+
+  opa:
+    image: openpolicyagent/opa:0.64.1
+    command: ["run", "--server", "/policies"]
+    volumes:
+      - ../policies:/policies:ro
+    ports:
+      - "8181:8181"
+
+  execution:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.execution_service
+    ports:
+      - "8086:8086"
+
+  model_gateway:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.model_gateway
+    ports:
+      - "8087:8087"
+
+  tool_gateway:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.tool_gateway
+    ports:
+      - "8088:8088"
+
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=aob
+    ports:
+      - "5432:5432"
+
+  kafka:
+    image: bitnami/kafka:3.6
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+
+  zookeeper:
+    image: bitnami/zookeeper:3.9
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    ports:
+      - "2181:2181"
+
