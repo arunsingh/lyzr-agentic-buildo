@@ -11,6 +11,7 @@ from agentic_core.compiler import load_workflow_yaml
 
 app = FastAPI(title="Agentic Orchestration Builder API")
 
+import os
 bus, store = InMemoryBus(), InMemoryStore()
 audit = HttpAuditSink()
 engine = WorkflowEngine(bus, store, on_decision=audit.emit)

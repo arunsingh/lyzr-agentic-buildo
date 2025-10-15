@@ -126,7 +126,11 @@ allow { not deny_no_approval }
 ## Running locally (docker‑compose)
 ```bash
 cd docker
-docker compose up --build
+# Reset stack (optional if previously running)
+docker compose down -v
+
+# Build and always pull upstream images
+docker compose up --pull always --build
 ```
 Services:
 - API: `http://localhost:8000`
@@ -137,6 +141,11 @@ Services:
 - Metering: `http://localhost:8083`
 - Postgres: `localhost:5432`
 - Kafka: `localhost:9092`
+- Redis: `localhost:6379`
+
+Notes:
+- Kafka/Zookeeper use Confluent images (`confluentinc/cp-kafka:7.6.1`, `confluentinc/cp-zookeeper:7.6.1`). The broker advertises `PLAINTEXT://kafka:9092` inside the compose network and is mapped to `localhost:9092` on the host.
+- The outbox worker is enabled and publishes to Kafka when Postgres and Kafka are healthy.
 
 ### Try it
 1) Compile a workflow
@@ -174,6 +183,10 @@ Use any OTLP collector (e.g., OpenTelemetry Collector, Tempo, Jaeger via OTLP).
 - `AOB_AUDIT_ENDPOINT` (optional) – DecisionRecord sink (default: `http://localhost:8085/decisions`)
 - `AOB_KAFKA_BOOTSTRAP` (optional) – Kafka bootstrap when using `KafkaBus`
 - `AOB_POSTGRES_DSN` (optional) – Postgres DSN when using `PostgresEventStore`
+- `AOB_REDIS_URL` (optional) – Redis URL for session leases (default `redis://localhost:6379/0`)
+- `SNAPSHOT_EVERY` (optional) – create snapshot automatically every k events
+- `AOB_KAFKA_BOOTSTRAP` – Kafka bootstrap (compose defaults to `kafka:9092`)
+- `AOB_KAFKA_TOPIC` – topic for events (default `aob.events`)
 
 ## Policy evaluation (OPA)
 - Engine posts to `POST /v1/data/aob/allow` with input:
@@ -243,7 +256,8 @@ Values (`charts/agentic-orch/values.yaml`) include optional sidecars:
 - Harden OPA (bundles, signature verification, fine‑grained policies).
 
 ## Troubleshooting
-- API not starting: ensure ports `8000/8081/8082/8083/8085/8181` are free.
+- API not starting: ensure ports `8000/8081/8082/8083/8085/8181/9092/6379/5432` are free.
 - OPA decisions always allow: confirm `policies/aob.rego` is mounted and OPA at `:8181`.
 - No spans: set `OTEL_EXPORTER_OTLP_ENDPOINT` to a running collector.
 - Events empty: you may be using in‑memory store; switch to Postgres adapter for persistence.
+- Kafka pull errors: we use Confluent images; ensure `docker compose pull` succeeds or check network proxy. If you previously used Bitnami tags, run `docker compose down -v` to clear.

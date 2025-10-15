@@ -8,6 +8,7 @@ from .nodes import BaseNode, Context
 from .types import DecisionRecord
 from .policy import OpaPolicyEvaluator
 from .otel import span
+from .lease import AbstractLease, NoopLease, RedisLease
 
 
 class PolicyGuard:
@@ -39,14 +40,24 @@ class Workflow:
         return next((e for e in self.edges if e.get("to") == node_id), {})
 
 class WorkflowEngine:
-    def __init__(self, bus: AbstractEventBus, store: AbstractEventStore, *, policy: Optional[PolicyGuard] = None, on_decision: Optional[Callable[[DecisionRecord], None]] = None):
+    def __init__(self, bus: AbstractEventBus, store: AbstractEventStore, *, policy: Optional[PolicyGuard] = None, on_decision: Optional[Callable[[DecisionRecord], None]] = None, lease: Optional[AbstractLease] = None):
         self.bus, self.store = bus, store
         evaluator = OpaPolicyEvaluator()
         self.policy = policy or PolicyGuard(check_fn=lambda ctx, node, policies: True)
         self.on_decision = on_decision
+        self.lease = lease or self._auto_lease()
+
+    def _auto_lease(self) -> AbstractLease:
+        try:
+            return RedisLease()
+        except Exception:
+            return NoopLease()
 
     async def start(self, wf: Workflow, ctx: Context) -> str:
         correlation_id = ctx.bag.setdefault("correlation_id", wf.id)
+        # acquire per-session lease to ensure ordered single execution
+        if not await self.lease.acquire(correlation_id, ttl_secs=30):
+            return correlation_id
         for node in wf.nodes:
             with span(f"node:{node.id}"):
                 policies = wf.policies_for(node.id)
@@ -101,10 +112,13 @@ class WorkflowEngine:
                 )
                 self.on_decision(dr)
             if evt.type == "human.wait": break
+        await self.lease.release(correlation_id)
         return correlation_id
 
     async def resume(self, wf: Workflow, ctx: Context) -> str:
         cid = ctx.bag["correlation_id"]
+        if not await self.lease.acquire(cid, ttl_secs=30):
+            return cid
         done = {e.payload.get("node") for e in await self.store.list(cid)
                 if e.type in {"task.completed", "agent.completed", "human.approved"}}
         for node in wf.nodes:
@@ -159,4 +173,5 @@ class WorkflowEngine:
                 )
                 self.on_decision(dr)
             if evt.type == "human.wait": break
+        await self.lease.release(cid)
         return cid
