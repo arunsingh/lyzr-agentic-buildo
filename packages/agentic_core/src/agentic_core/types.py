@@ -30,4 +30,9 @@ class DecisionRecord:
     tool_calls: List[Dict[str, Any]]
     cost: Dict[str, Any]
     latency_ms: Optional[float]
+    # extended fields for deterministic replay/debug
+    prompt: Optional[str] = None
+    model_version: Optional[str] = None
+    tool_io: Optional[List[Dict[str, Any]]] = None
+    feature_flags: Optional[Dict[str, Any]] = None
 

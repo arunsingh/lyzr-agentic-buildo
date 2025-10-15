@@ -1,0 +1,67 @@
+name: SDK Generation (py/ts)
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  generate-sdks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Export OpenAPI schema from app
+        run: |
+          python - << 'PY'
+          import json, sys
+          sys.path.insert(0, 'services/api/src')
+          sys.path.insert(0, 'packages/agentic_core/src')
+          from aob_api.app import app
+          with open('openapi.json','w') as f:
+              json.dump(app.openapi(), f)
+          print('Wrote openapi.json')
+          PY
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Download openapi-generator
+        run: |
+          curl -L https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/7.6.0/openapi-generator-cli-7.6.0.jar -o openapi-generator-cli.jar
+
+      - name: Generate Python SDK
+        run: |
+          rm -rf sdk/python
+          java -jar openapi-generator-cli.jar generate -i openapi.json -g python -o sdk/python --additional-properties=packageName=aob_sdk
+
+      - name: Generate TypeScript SDK (axios)
+        run: |
+          rm -rf sdk/typescript
+          java -jar openapi-generator-cli.jar generate -i openapi.json -g typescript-axios -o sdk/typescript
+
+      - name: Upload SDK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdks-${{ github.ref_name }}
+          path: sdk
+
+      - name: Attach to release (zip)
+        if: github.event_name == 'release'
+        run: |
+          zip -r sdks.zip sdk
+          gh release upload ${{ github.event.release.tag_name }} sdks.zip --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

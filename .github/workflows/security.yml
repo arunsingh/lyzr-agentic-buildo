@@ -1,0 +1,104 @@
+name: Security & Supply Chain
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  security-events: write
+  packages: write
+
+jobs:
+  sbom-and-trivy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate SBOM (Syft)
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          output-file: sbom-spdx.json
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-spdx
+          path: sbom-spdx.json
+
+      - name: Trivy FS scan (code & dependencies)
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          scan-type: fs
+          format: sarif
+          output: trivy-fs.sarif
+          severity: HIGH,CRITICAL
+
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+
+  sign-images:
+    needs: sbom-and-trivy
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      packages: write
+      contents: read
+    env:
+      REGISTRY: ghcr.io
+      OWNER: ${{ github.repository_owner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: 'v2.2.3'
+
+      - name: Sign images (keyless)
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          set -euo pipefail
+          IMAGES=(
+            ghcr.io/${OWNER}/aob-api:latest
+            ghcr.io/${OWNER}/aob-worker:latest
+            ghcr.io/${OWNER}/aob-agent-registry:latest
+            ghcr.io/${OWNER}/aob-session-service:latest
+            ghcr.io/${OWNER}/aob-metering-service:latest
+            ghcr.io/${OWNER}/aob-audit-service:latest
+            ghcr.io/${OWNER}/aob-execution-service:latest
+            ghcr.io/${OWNER}/aob-model-gateway:latest
+            ghcr.io/${OWNER}/aob-tool-gateway:latest
+          )
+          for img in "${IMAGES[@]}"; do
+            cosign sign --yes ${img}
+          done
+
+  snyk-optional:
+    if: ${{ secrets.SNYK_TOKEN != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: snyk/actions/setup@master
+      - run: snyk test --sarif-file-output=snyk.sarif || true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: snyk.sarif
+

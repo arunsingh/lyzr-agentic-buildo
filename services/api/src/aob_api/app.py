@@ -1,12 +1,13 @@
 
 from __future__ import annotations
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header, Depends
 from pydantic import BaseModel
 from agentic_core import InMemoryBus, InMemoryStore, WorkflowEngine, Context, Workflow, TaskNode, AgentNode, HumanCheckpointNode
 from agentic_core.types import AgentSpec
 from agentic_core.audit import HttpAuditSink
 from agentic_core.otel import init as otel_init
 from agentic_core.store import AbstractEventStore
+from .oidc import OIDC
 from agentic_core.compiler import load_workflow_yaml
 
 app = FastAPI(title="Agentic Orchestration Builder API")
@@ -15,6 +16,7 @@ import os
 bus, store = InMemoryBus(), InMemoryStore()
 audit = HttpAuditSink()
 engine = WorkflowEngine(bus, store, on_decision=audit.emit)
+oidc = OIDC()
 
 # Initialize OTEL if available
 try:
@@ -48,8 +50,18 @@ class CompileReq(BaseModel):
 class CreateAgentReq(BaseModel):
     spec: AgentSpec
 
+async def _auth(x_api_key: str | None = Header(default=None, alias="X-API-Key"), authorization: str | None = Header(default=None, alias="Authorization")) -> str:
+    # Prefer OIDC Bearer token; fallback to API key for local dev
+    if authorization and authorization.lower().startswith("bearer "):
+        token = authorization.split(" ",1)[1]
+        claims = await oidc.validate(token)
+        return OIDC.tenant_from_claims(claims)
+    if x_api_key:
+        return x_api_key.split(":",1)[0]
+    raise HTTPException(401, "Unauthorized")
+
 @app.get("/")
-async def root():
+async def root(tenant: str = Depends(_auth)):
     return {"_links": {
         "self": {"href": "/"},
         "start": {"href": "/workflows/start", "method": "POST"},
@@ -61,13 +73,13 @@ async def root():
     }}
 
 @app.post("/workflows/start")
-async def start(req: StartReq):
+async def start(req: StartReq, tenant: str = Depends(_auth)):
     ctx = Context(bag={"text": req.text, "approval": req.approval, "correlation_id": req.workflow_id})
     cid = await engine.start(wf, ctx)
     return {"correlation_id": cid, "_links": {"events": {"href": f"/workflows/{cid}/events"}, "resume": {"href": "/workflows/resume", "method": "POST"}}}
 
 @app.post("/workflows/resume")
-async def resume(req: ResumeReq):
+async def resume(req: ResumeReq, tenant: str = Depends(_auth)):
     ctx = Context(bag={"approval": req.approval, "correlation_id": req.workflow_id})
     cid = await engine.resume(wf, ctx)
     return {"correlation_id": cid, "_links": {"events": {"href": f"/workflows/{cid}/events"}}}

@@ -61,6 +61,14 @@ services:
       - "8087:8087"
 
   tool_gateway:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.2
+    command: ["start-dev", "--http-port=8080", "--hostname=localhost"]
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+    ports:
+      - "8080:8080"
     build:
       context: ..
       dockerfile: docker/Dockerfile.tool_gateway
@@ -89,7 +97,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_DB=aob
     ports:
-      - "5432:5432"
+      - "55432:5432"
 
   redis:
     image: redis:7-alpine

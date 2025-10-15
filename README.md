@@ -140,12 +140,48 @@ Services:
 - Session Service: `http://localhost:8082`
 - Metering: `http://localhost:8083`
 - Postgres: `localhost:5432`
+  - Note: in compose we map to host port `55432` to avoid conflicts; use DSN `postgres://postgres:postgres@localhost:55432/aob` when connecting from host tools.
 - Kafka: `localhost:9092`
 - Redis: `localhost:6379`
 
 Notes:
 - Kafka/Zookeeper use Confluent images (`confluentinc/cp-kafka:7.6.1`, `confluentinc/cp-zookeeper:7.6.1`). The broker advertises `PLAINTEXT://kafka:9092` inside the compose network and is mapped to `localhost:9092` on the host.
 - The outbox worker is enabled and publishes to Kafka when Postgres and Kafka are healthy.
+
+### OIDC with Keycloak (local)
+- Compose includes Keycloak at `http://localhost:8080` (admin/admin).
+- Create a realm `demo`, a public client `aob-api` with redirect `http://localhost:8000` and audience `aob-api`.
+- Obtain a token:
+```bash
+curl -s -X POST \
+  -H 'content-type: application/x-www-form-urlencoded' \
+  -d 'grant_type=client_credentials&client_id=aob-api&client_secret=XXXX' \
+  http://localhost:8080/realms/demo/protocol/openid-connect/token | jq -r .access_token
+```
+- Call API with the token:
+```bash
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/
+```
+- Env vars:
+  - `OIDC_ISSUER_URL=http://localhost:8080/realms/demo`
+  - `OIDC_AUDIENCE=aob-api`
+  - `OIDC_REQUIRED_SCOPES=` (space-delimited)
+
+### Auth & tenancy
+- API reads `X-API-Key` header and derives a tenant identifier (demo only). Bring your own IdP and OAuth2/OIDC to enable scopes and proper tenancy enforcement.
+
+### Tool gateway policy enforcement
+- All tool calls should pass through `services/tool_gateway` (`POST /call`). OPA is enforced before proxying (deny-by-default model). Edit `policies/aob.rego` to tailor rules.
+
+### OpenAPI & SDKs
+- FastAPI exposes the OpenAPI document at `/openapi.json`.
+- Local generation example (requires Java and openapi-generator):
+```bash
+curl -s http://localhost:8000/openapi.json -o /tmp/openapi.json
+openapi-generator generate -i /tmp/openapi.json -g python -o ./sdk/python
+openapi-generator generate -i /tmp/openapi.json -g typescript-axios -o ./sdk/typescript
+```
+SDK artifacts can be uploaded via CI; see “CI/CD and deployments”.
 
 ### Try it
 1) Compile a workflow
@@ -237,6 +273,11 @@ Values (`charts/agentic-orch/values.yaml`) include optional sidecars:
 - Cloud overlays
   - `deploy/kustomize/overlays/{aws,azure,gcp}/values.yaml` provide LB annotations
 
+### Security & supply chain in CI
+- SBOM: generated via Syft and uploaded as artifact on each push/PR.
+- Vulnerability scans: Trivy filesystem scan; SARIF uploaded to Security tab. Optional Snyk scan if `SNYK_TOKEN` is set.
+- Image signing: Cosign keyless signs all GHCR images after build; configure repository to require signature verification on pull if desired.
+
 ### Required GitHub secrets (recommend OIDC where possible)
 - For GHCR: none required (uses `GITHUB_TOKEN`), ensure Packages: write permission enabled
 - For cluster deploys via GitHub Actions to cloud (optional):
@@ -257,6 +298,7 @@ Values (`charts/agentic-orch/values.yaml`) include optional sidecars:
 
 ## Troubleshooting
 - API not starting: ensure ports `8000/8081/8082/8083/8085/8181/9092/6379/5432` are free.
+  - If port 5432 is in use on host, compose maps Postgres to `55432` (container remains `5432`). Update local DSNs accordingly.
 - OPA decisions always allow: confirm `policies/aob.rego` is mounted and OPA at `:8181`.
 - No spans: set `OTEL_EXPORTER_OTLP_ENDPOINT` to a running collector.
 - Events empty: you may be using in‑memory store; switch to Postgres adapter for persistence.

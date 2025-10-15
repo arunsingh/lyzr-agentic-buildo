@@ -1,0 +1,114 @@
+name: Supply Chain (SBOM, Sign, Scan)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'docker/**'
+      - 'services/**'
+      - 'packages/**'
+      - '.github/workflows/supply-chain.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  sbom-sign-scan:
+    runs-on: ubuntu-latest
+    env:
+      REGISTRY: ghcr.io
+      OWNER: ${{ github.repository_owner }}
+      IMAGES: |
+        aob-api
+        aob-worker
+        aob-agent-registry
+        aob-session-service
+        aob-metering-service
+        aob-audit-service
+        aob-execution-service
+        aob-model-gateway
+        aob-tool-gateway
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Cosign
+        uses: sigstore/cosign-installer@v3.7.0
+
+      - name: Install Syft & Trivy
+        uses: anchore/sbom-action/download-syft@v0.17.5
+      - name: Setup Trivy
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          cache-dir: ~/.cache/trivy
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push images (reuse build workflow tags)
+        uses: docker/bake-action@v5
+        with:
+          files: |
+            docker/docker-bake.hcl
+          push: true
+        continue-on-error: true
+
+      - name: Generate SBOMs (Syft) and upload artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p sbom
+          while read -r name; do
+            ref="ghcr.io/${OWNER}/${name}:latest"
+            syft packages "$ref" -o spdx-json > sbom/${name}-sbom.spdx.json || true
+          done <<< "$IMAGES"
+          tar -czf sbom.tgz sbom
+        
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.tgz
+
+      - name: Sign container images with Cosign (keyless if no key)
+        env:
+          COSIGN_EXPERIMENTAL: 1
+        shell: bash
+        run: |
+          set -euo pipefail
+          while read -r name; do
+            ref="ghcr.io/${OWNER}/${name}:latest"
+            if [ -n "${{ secrets.COSIGN_PRIVATE_KEY || '' }}" ]; then
+              echo "Signing with key for $ref"
+              cosign sign --key env://COSIGN_PRIVATE_KEY "$ref"
+            else
+              echo "Keyless signing for $ref"
+              cosign sign "$ref"
+            fi
+          done <<< "$IMAGES"
+        
+      - name: Trivy vulnerability scan (images)
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          while read -r name; do
+            ref="ghcr.io/${OWNER}/${name}:latest"
+            trivy image --timeout 10m --severity HIGH,CRITICAL --exit-code 0 "$ref"
+          done <<< "$IMAGES"
+
+      - name: Optional Snyk scan (if SNYK_TOKEN)
+        if: ${{ secrets.SNYK_TOKEN != '' }}
+        uses: snyk/actions/docker@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: ghcr.io/${{ github.repository_owner }}/aob-api:latest
+          args: --severity-threshold=high
+
