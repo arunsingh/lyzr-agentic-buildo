@@ -20,6 +20,7 @@ class WorkflowSpec(BaseModel):
     id: str
     nodes: List[NodeSpec]
     edges: Optional[List[Dict[str, Any]]] = None
+    # per-edge optional retry/backoff config
 
 def _mk_fn(expr: str) -> Callable[[Context], Dict[str, Any]]:
     # extremely limited, safe expression evaluator (demo only)

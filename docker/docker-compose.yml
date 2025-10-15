@@ -68,6 +68,21 @@ services:
     ports:
       - "8088:8088"
 
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+    environment:
+      - PYTHONUNBUFFERED=1
+      - AOB_POSTGRES_DSN=postgres://postgres:postgres@postgres:5432/aob
+      - AOB_KAFKA_BOOTSTRAP=kafka:9092
+      - AOB_KAFKA_TOPIC=aob.events
+      - AOB_OUTBOX_POLL_SECS=1.0
+      - AOB_OUTBOX_BATCH=100
+    depends_on:
+      - postgres
+      - kafka
+
   postgres:
     image: postgres:15
     environment:

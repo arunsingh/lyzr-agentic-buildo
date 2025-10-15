@@ -35,6 +35,9 @@ class Workflow:
     def policies_for(self, node_id: str) -> List[str]:
         return [p for e in self.edges for p in e.get("policies", []) if e.get("to") == node_id]
 
+    def edge_for(self, node_id: str) -> dict:
+        return next((e for e in self.edges if e.get("to") == node_id), {})
+
 class WorkflowEngine:
     def __init__(self, bus: AbstractEventBus, store: AbstractEventStore, *, policy: Optional[PolicyGuard] = None, on_decision: Optional[Callable[[DecisionRecord], None]] = None):
         self.bus, self.store = bus, store
@@ -47,16 +50,42 @@ class WorkflowEngine:
         for node in wf.nodes:
             with span(f"node:{node.id}"):
                 policies = wf.policies_for(node.id)
-                edge = next((e for e in wf.edges if e.get("to") == node.id), {})
+                edge = wf.edge_for(node.id)
                 allowed = await self.policy.check(ctx, node, policies, edge)
                 if not allowed:
                     evt = Event.new("policy.denied", {"node": node.id, "reason": "policy"})
                     await self.store.append(evt); await self.bus.publish(evt)
                     break
-                evt = await node.run(ctx)
+                # retry/backoff semantics
+                retry_cfg = edge.get("retry", {})
+                attempts = 0
+                max_attempts = int(retry_cfg.get("max_attempts", 1))
+                backoff_ms = int(retry_cfg.get("backoff_ms", 0))
+                jitter = bool(retry_cfg.get("jitter", False))
+                while True:
+                    attempts += 1
+                    try:
+                        evt = await node.run(ctx)
+                        break
+                    except Exception as ex:  # only for demo; in prod define retryable
+                        if attempts >= max_attempts:
+                            evt = Event.new("node.failed", {"node": node.id, "error": str(ex)})
+                            break
+                        import asyncio, random
+                        delay = backoff_ms / 1000.0
+                        if jitter:
+                            delay *= (1 + random.random())
+                        await asyncio.sleep(delay)
             evt = Event.new(evt.type, {**evt.payload, "workflow": wf.id},
                             correlation_id=correlation_id, causation_id=evt.id)
-            await self.store.append(evt); await self.bus.publish(evt)
+            # idempotent append via outbox when supported
+            try:
+                appended, _ = await self.store.append_with_outbox(evt)  # type: ignore[attr-defined]
+            except Exception:
+                await self.store.append(evt)
+                appended = True
+            if appended:
+                await self.bus.publish(evt)
             if self.on_decision:
                 dr = DecisionRecord(
                     correlation_id=correlation_id,
@@ -82,15 +111,39 @@ class WorkflowEngine:
             if node.id in done: continue
             with span(f"node:{node.id}"):
                 policies = wf.policies_for(node.id)
-                edge = next((e for e in wf.edges if e.get("to") == node.id), {})
+                edge = wf.edge_for(node.id)
                 allowed = await self.policy.check(ctx, node, policies, edge)
                 if not allowed:
                     evt = Event.new("policy.denied", {"node": node.id, "reason": "policy"}, correlation_id=cid)
                     await self.store.append(evt); await self.bus.publish(evt)
                     break
-                evt = await node.run(ctx)
+                retry_cfg = edge.get("retry", {})
+                attempts = 0
+                max_attempts = int(retry_cfg.get("max_attempts", 1))
+                backoff_ms = int(retry_cfg.get("backoff_ms", 0))
+                jitter = bool(retry_cfg.get("jitter", False))
+                while True:
+                    attempts += 1
+                    try:
+                        evt = await node.run(ctx)
+                        break
+                    except Exception as ex:
+                        if attempts >= max_attempts:
+                            evt = Event.new("node.failed", {"node": node.id, "error": str(ex)}, correlation_id=cid)
+                            break
+                        import asyncio, random
+                        delay = backoff_ms / 1000.0
+                        if jitter:
+                            delay *= (1 + random.random())
+                        await asyncio.sleep(delay)
             evt = Event.new(evt.type, {**evt.payload, "workflow": wf.id}, correlation_id=cid)
-            await self.store.append(evt); await self.bus.publish(evt)
+            try:
+                appended, _ = await self.store.append_with_outbox(evt)  # type: ignore[attr-defined]
+            except Exception:
+                await self.store.append(evt)
+                appended = True
+            if appended:
+                await self.bus.publish(evt)
             if self.on_decision:
                 dr = DecisionRecord(
                     correlation_id=cid,

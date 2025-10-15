@@ -6,6 +6,7 @@ from agentic_core import InMemoryBus, InMemoryStore, WorkflowEngine, Context, Wo
 from agentic_core.types import AgentSpec
 from agentic_core.audit import HttpAuditSink
 from agentic_core.otel import init as otel_init
+from agentic_core.store import AbstractEventStore
 from agentic_core.compiler import load_workflow_yaml
 
 app = FastAPI(title="Agentic Orchestration Builder API")
@@ -83,6 +84,43 @@ async def compile_yaml(req: CompileReq):
         return {"status": "ok", "workflow_id": wf.id}
     except Exception as e:
         raise HTTPException(400, f"Invalid YAML: {e}")
+
+@app.post("/workflows/{cid}/snapshots")
+async def create_snapshot(cid: str):
+    try:
+        snap = await store.snapshot(cid)  # type: ignore[attr-defined]
+        return {"snapshot_id": snap}
+    except Exception as e:
+        raise HTTPException(400, f"Snapshots not supported: {e}")
+
+@app.get("/workflows/{cid}/snapshots")
+async def list_snapshots(cid: str):
+    try:
+        snaps = await store.list_snapshots(cid)  # type: ignore[attr-defined]
+        return {"items": snaps}
+    except Exception as e:
+        raise HTTPException(400, f"Snapshots not supported: {e}")
+
+@app.post("/workflows/{cid}/replay")
+async def replay_from_snapshot(cid: str, snapshot_id: str):
+    try:
+        base = await store.load_snapshot(cid, snapshot_id)  # type: ignore[attr-defined]
+        # For demo: just return the snapshot events; a full replay would re-run remaining nodes
+        return {"items": [e.to_dict() for e in base]}
+    except Exception as e:
+        raise HTTPException(400, f"Replay not available: {e}")
+
+@app.post("/admin/outbox/drain")
+async def drain_outbox(limit: int = 100):
+    try:
+        # fetch oldest undelivered items
+        items = await store.fetch_outbox(limit)  # type: ignore[attr-defined]
+        for evt in items:
+            await bus.publish(evt)
+        await store.mark_outbox_delivered([e.id for e in items])  # type: ignore[attr-defined]
+        return {"published": len(items)}
+    except Exception as e:
+        raise HTTPException(400, f"Outbox not available: {e}")
 
 # Minimal AaaS surface (in-memory only for now)
 _agents: dict[str, AgentSpec] = {}
