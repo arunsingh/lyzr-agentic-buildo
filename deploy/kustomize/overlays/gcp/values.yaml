@@ -1,0 +1,8 @@
+image:
+  repository: ghcr.io/OWNER/aob-api
+  tag: latest
+service:
+  type: LoadBalancer
+  annotations:
+    cloud.google.com/load-balancer-type: "External"
+

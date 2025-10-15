@@ -211,6 +211,32 @@ Values (`charts/agentic-orch/values.yaml`) include optional sidecars:
 ## Pricing (reference)
 - See `docs/pricing/sku_matrix.md` and `docs/pricing/sku_matrix.json` for packaging, meters, and example plans (Starter/Pro/Enterprise). Tailor to your deployment model.
 
+## CI/CD and deployments
+- GitHub Container Registry (GHCR) builds
+  - On push to `main`, images are built and pushed to `ghcr.io/<OWNER>/...`
+  - Workflows: `.github/workflows/build-images.yml`, `.github/workflows/publish-helm.yml`
+- Helm chart (OCI)
+  - Chart packaged and pushed to `oci://ghcr.io/<OWNER>`
+  - Argo CD can pull the OCI chart directly
+- Argo CD multi-cluster
+  - `deploy/argocd/applicationset.yaml` defines per-cluster app with Helm values
+  - Set `GITHUB_OWNER` env in Argo CD controller for OCI repo path
+- Cloud overlays
+  - `deploy/kustomize/overlays/{aws,azure,gcp}/values.yaml` provide LB annotations
+
+### Required GitHub secrets (recommend OIDC where possible)
+- For GHCR: none required (uses `GITHUB_TOKEN`), ensure Packages: write permission enabled
+- For cluster deploys via GitHub Actions to cloud (optional):
+  - AWS: `AWS_ROLE_TO_ASSUME`, `AWS_REGION` (use OIDC; configure trust for `repo:<owner>/<repo>:ref:refs/heads/main`)
+  - Azure: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` (federated credentials)
+  - GCP: `WORKLOAD_IDENTITY_PROVIDER`, `GCP_SERVICE_ACCOUNT` (OIDC), or `GCP_SA_KEY` as fallback
+
+### Argo CD setup
+1) Install Argo CD in each cluster
+2) Create a repo credential for GHCR OCI if private
+3) Apply `deploy/argocd/applicationset.yaml` (tweak cluster/namespace/owner)
+4) Sync apps; verify API exposed
+
 ## Extending
 - Add real Postgres/Kafka by switching to `PostgresEventStore` and `KafkaBus` in your API init.
 - Implement `tool-gateway` and `model-gateway` services.

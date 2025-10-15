@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: aob-multicluster
+spec:
+  generators:
+    - list:
+        elements:
+          - name: dev-us
+            cluster: https://kubernetes.default.svc
+            namespace: aob-dev
+          - name: prod-eu
+            cluster: https://kubernetes.default.svc
+            namespace: aob-prod
+  template:
+    metadata:
+      name: 'aob-{{name}}'
+    spec:
+      project: default
+      destination:
+        server: '{{cluster}}'
+        namespace: '{{namespace}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+      source:
+        chart: agentic-orch
+        repoURL: 'oci://ghcr.io/{{ env "GITHUB_OWNER" }}'
+        targetRevision: latest
+        helm:
+          releaseName: agentic-orch
+          values: |
+            image:
+              repository: ghcr.io/{{ env "GITHUB_OWNER" }}/aob-api
+              tag: latest
+

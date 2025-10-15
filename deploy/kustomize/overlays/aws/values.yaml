@@ -1,0 +1,8 @@
+image:
+  repository: ghcr.io/OWNER/aob-api
+  tag: latest
+service:
+  type: LoadBalancer
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+

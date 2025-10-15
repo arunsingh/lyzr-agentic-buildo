@@ -1,0 +1,37 @@
+name: Publish Helm Chart (GHCR OCI)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'charts/**'
+      - '.github/workflows/publish-helm.yml'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      REGISTRY: ghcr.io
+      OWNER: ${{ github.repository_owner }}
+      CHART_NAME: agentic-orch
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Package chart
+        run: |
+          helm dependency update charts/${CHART_NAME} || true
+          helm package charts/${CHART_NAME} -d dist
+      - name: Push to GHCR OCI
+        run: |
+          CHART_FILE=$(ls dist/${CHART_NAME}-*.tgz)
+          helm push ${CHART_FILE} oci://ghcr.io/${OWNER}
+
