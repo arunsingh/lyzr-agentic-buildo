@@ -1,0 +1,85 @@
+name: SDK Generation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'services/api/**'
+      - 'packages/agentic_core/**'
+  workflow_dispatch:
+
+jobs:
+  generate-sdk:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        pip install fastapi[all] uvicorn httpx
+        pip install openapi-generator-cli
+    
+    - name: Start API server
+      run: |
+        cd services/api
+        pip install -e .
+        uvicorn src.aob_api.app:app --host 0.0.0.0 --port 8000 &
+        sleep 10
+    
+    - name: Export OpenAPI spec
+      run: |
+        curl -o openapi.json http://localhost:8000/openapi.json
+        echo "OpenAPI spec exported to openapi.json"
+    
+    - name: Generate Python SDK
+      run: |
+        openapi-generator-cli generate \
+          -i openapi.json \
+          -g python \
+          -o sdk/python \
+          --package-name aob_sdk \
+          --additional-properties=packageVersion=0.1.0,packageUrl=https://github.com/arunsingh/lyzr-agentic-buildo
+    
+    - name: Generate TypeScript SDK
+      run: |
+        openapi-generator-cli generate \
+          -i openapi.json \
+          -g typescript-axios \
+          -o sdk/typescript \
+          --package-name @aob/sdk \
+          --additional-properties=npmName=@aob/sdk,npmVersion=0.1.0
+    
+    - name: Build Python SDK
+      run: |
+        cd sdk/python
+        python setup.py sdist bdist_wheel
+    
+    - name: Build TypeScript SDK
+      run: |
+        cd sdk/typescript
+        npm install
+        npm run build
+    
+    - name: Upload Python SDK
+      uses: actions/upload-artifact@v3
+      with:
+        name: python-sdk
+        path: sdk/python/dist/
+    
+    - name: Upload TypeScript SDK
+      uses: actions/upload-artifact@v3
+      with:
+        name: typescript-sdk
+        path: sdk/typescript/dist/
+    
+    - name: Upload OpenAPI spec
+      uses: actions/upload-artifact@v3
+      with:
+        name: openapi-spec
+        path: openapi.json

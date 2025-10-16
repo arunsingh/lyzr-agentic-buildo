@@ -1,0 +1,344 @@
+/* Netdata Integration Component Styles */
+
+.netdata-integration {
+  padding: 20px;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+.netdata-header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 30px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.netdata-header h2 {
+  margin: 0 0 10px 0;
+  font-size: 2.5rem;
+  font-weight: 600;
+}
+
+.netdata-header p {
+  margin: 0;
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+.header-icon {
+  margin-right: 15px;
+  font-size: 2.5rem;
+}
+
+.netdata-stats {
+  margin-bottom: 30px;
+}
+
+.netdata-stats .ant-card {
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.netdata-stats .ant-card:hover {
+  transform: translateY(-5px);
+}
+
+.netdata-content {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.netdata-content .ant-tabs {
+  padding: 20px;
+}
+
+.netdata-content .ant-tabs-tab {
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.netdata-content .ant-tabs-content-holder {
+  padding-top: 20px;
+}
+
+.service-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.service-icon {
+  color: #667eea;
+  font-size: 1.2rem;
+}
+
+.service-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.service-actions .ant-btn {
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.service-card {
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+  margin-bottom: 16px;
+}
+
+.service-card:hover {
+  transform: translateY(-5px);
+}
+
+.service-info {
+  margin-bottom: 15px;
+}
+
+.service-info p {
+  margin: 5px 0;
+  color: #666;
+}
+
+.service-buttons .ant-btn {
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.service-buttons .ant-btn:disabled {
+  opacity: 0.5;
+}
+
+/* Status badges */
+.ant-badge-status-success {
+  background-color: #52c41a;
+}
+
+.ant-badge-status-error {
+  background-color: #ff4d4f;
+}
+
+.ant-badge-status-warning {
+  background-color: #faad14;
+}
+
+.ant-badge-status-default {
+  background-color: #d9d9d9;
+}
+
+/* Table styles */
+.ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 600;
+  color: #333;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: #f0f9ff;
+}
+
+/* Card styles */
+.ant-card-head {
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.ant-card-head-title {
+  font-weight: 600;
+  color: #333;
+}
+
+/* Button styles */
+.ant-btn-primary {
+  background: #667eea;
+  border-color: #667eea;
+}
+
+.ant-btn-primary:hover {
+  background: #764ba2;
+  border-color: #764ba2;
+}
+
+.ant-btn-primary:focus {
+  background: #667eea;
+  border-color: #667eea;
+}
+
+/* Alert styles */
+.ant-alert-info {
+  border: 1px solid #91d5ff;
+  background: #e6f7ff;
+}
+
+.ant-alert-info .ant-alert-icon {
+  color: #1890ff;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .netdata-integration {
+    padding: 10px;
+  }
+  
+  .netdata-header {
+    padding: 20px;
+  }
+  
+  .netdata-header h2 {
+    font-size: 2rem;
+  }
+  
+  .netdata-stats .ant-col {
+    margin-bottom: 16px;
+  }
+  
+  .service-actions {
+    flex-direction: column;
+  }
+  
+  .service-actions .ant-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 576px) {
+  .netdata-header h2 {
+    font-size: 1.5rem;
+  }
+  
+  .netdata-header p {
+    font-size: 1rem;
+  }
+  
+  .netdata-content .ant-tabs {
+    padding: 10px;
+  }
+}
+
+/* Loading states */
+.ant-spin-container {
+  min-height: 200px;
+}
+
+/* Custom scrollbar */
+.netdata-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.netdata-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.netdata-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.netdata-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Animation for status updates */
+@keyframes statusUpdate {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+.status-updating {
+  animation: statusUpdate 1s ease-in-out;
+}
+
+/* Hover effects */
+.netdata-stats .ant-card,
+.service-card {
+  transition: all 0.3s ease;
+}
+
+.netdata-stats .ant-card:hover,
+.service-card:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Focus states */
+.ant-btn:focus {
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+.ant-btn-primary:focus {
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+/* Custom badge styles */
+.ant-badge-count {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* Table row hover effects */
+.ant-table-tbody > tr {
+  transition: background-color 0.3s ease;
+}
+
+.ant-table-tbody > tr:hover {
+  background-color: #f0f9ff;
+}
+
+/* Card header styles */
+.ant-card-head-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* Statistic styles */
+.ant-statistic-title {
+  color: #666;
+  font-weight: 500;
+}
+
+.ant-statistic-content {
+  color: #333;
+  font-weight: 600;
+}
+
+/* Tab styles */
+.ant-tabs-tab {
+  padding: 12px 20px;
+}
+
+.ant-tabs-tab-active {
+  color: #667eea;
+}
+
+.ant-tabs-ink-bar {
+  background: #667eea;
+}
+
+/* Code styles */
+code {
+  background: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.9em;
+  color: #e74c3c;
+}
+
+/* Link styles */
+a {
+  color: #667eea;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #764ba2;
+  text-decoration: underline;
+}

@@ -1,0 +1,534 @@
+# Unified AOB Platform Netdata Configuration
+# Consolidates monitoring for all services into a single dashboard
+
+version: '3.8'
+
+services:
+  # Main Netdata Parent (Unified Dashboard)
+  netdata-parent:
+    image: netdata/netdata:latest
+    container_name: netdata-parent
+    hostname: netdata-parent
+    ports:
+      - "19999:19999"  # Main unified dashboard
+    volumes:
+      - netdata_config:/etc/netdata
+      - netdata_lib:/var/lib/netdata
+      - netdata_cache:/var/cache/netdata
+      - netdata_log:/var/log/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - NETDATA_CLAIM_TOKEN=netdata-claim-token
+      - NETDATA_CLAIM_URL=https://app.netdata.cloud
+      - NETDATA_CLAIM_ROOMS=netdata-rooms
+      - NETDATA_CLAIM_PROXY=
+      - NETDATA_CLAIM_EXTRA=
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:19999/api/v1/info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # API Service Monitoring
+  netdata-api:
+    image: netdata/netdata:latest
+    container_name: netdata-api
+    hostname: netdata-api
+    ports:
+      - "19998:19999"
+    volumes:
+      - netdata_api_config:/etc/netdata
+      - netdata_api_lib:/var/lib/netdata
+      - netdata_api_cache:/var/cache/netdata
+      - netdata_api_log:/var/log/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - NETDATA_CLAIM_TOKEN=netdata-claim-token
+      - NETDATA_CLAIM_URL=https://app.netdata.cloud
+      - NETDATA_CLAIM_ROOMS=netdata-rooms
+      - NETDATA_CLAIM_PROXY=
+      - NETDATA_CLAIM_EXTRA=
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:19999/api/v1/info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Worker Service Monitoring
+  netdata-worker:
+    image: netdata/netdata:latest
+    container_name: netdata-worker
+    hostname: netdata-worker
+    ports:
+      - "19997:19999"
+    volumes:
+      - netdata_worker_config:/etc/netdata
+      - netdata_worker_lib:/var/lib/netdata
+      - netdata_worker_cache:/var/cache/netdata
+      - netdata_worker_log:/var/log/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - NETDATA_CLAIM_TOKEN=netdata-claim-token
+      - NETDATA_CLAIM_URL=https://app.netdata.cloud
+      - NETDATA_CLAIM_ROOMS=netdata-rooms
+      - NETDATA_CLAIM_PROXY=
+      - NETDATA_CLAIM_EXTRA=
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:19999/api/v1/info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Audit Service Monitoring
+  netdata-audit:
+    image: netdata/netdata:latest
+    container_name: netdata-audit
+    hostname: netdata-audit
+    ports:
+      - "19996:19999"
+    volumes:
+      - netdata_audit_config:/etc/netdata
+      - netdata_audit_lib:/var/lib/netdata
+      - netdata_audit_cache:/var/cache/netdata
+      - netdata_audit_log:/var/log/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - NETDATA_CLAIM_TOKEN=netdata-claim-token
+      - NETDATA_CLAIM_URL=https://app.netdata.cloud
+      - NETDATA_CLAIM_ROOMS=netdata-rooms
+      - NETDATA_CLAIM_PROXY=
+      - NETDATA_CLAIM_EXTRA=
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:19999/api/v1/info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Model Gateway Monitoring
+  netdata-model-gateway:
+    image: netdata/netdata:latest
+    container_name: netdata-model-gateway
+    hostname: netdata-model-gateway
+    ports:
+      - "19995:19999"
+    volumes:
+      - netdata_model_gateway_config:/etc/netdata
+      - netdata_model_gateway_lib:/var/lib/netdata
+      - netdata_model_gateway_cache:/var/cache/netdata
+      - netdata_model_gateway_log:/var/log/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - NETDATA_CLAIM_TOKEN=netdata-claim-token
+      - NETDATA_CLAIM_URL=https://app.netdata.cloud
+      - NETDATA_CLAIM_ROOMS=netdata-rooms
+      - NETDATA_CLAIM_PROXY=
+      - NETDATA_CLAIM_EXTRA=
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:19999/api/v1/info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Tool Gateway Monitoring
+  netdata-tool-gateway:
+    image: netdata/netdata:latest
+    container_name: netdata-tool-gateway
+    hostname: netdata-tool-gateway
+    ports:
+      - "19994:19999"
+    volumes:
+      - netdata_tool_gateway_config:/etc/netdata
+      - netdata_tool_gateway_lib:/var/lib/netdata
+      - netdata_tool_gateway_cache:/var/cache/netdata
+      - netdata_tool_gateway_log:/var/log/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - NETDATA_CLAIM_TOKEN=netdata-claim-token
+      - NETDATA_CLAIM_URL=https://app.netdata.cloud
+      - NETDATA_CLAIM_ROOMS=netdata-rooms
+      - NETDATA_CLAIM_PROXY=
+      - NETDATA_CLAIM_EXTRA=
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:19999/api/v1/info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Tenant Manager Monitoring
+  netdata-tenant-manager:
+    image: netdata/netdata:latest
+    container_name: netdata-tenant-manager
+    hostname: netdata-tenant-manager
+    ports:
+      - "19993:19999"
+    volumes:
+      - netdata_tenant_manager_config:/etc/netdata
+      - netdata_tenant_manager_lib:/var/lib/netdata
+      - netdata_tenant_manager_cache:/var/cache/netdata
+      - netdata_tenant_manager_log:/var/log/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - NETDATA_CLAIM_TOKEN=netdata-claim-token
+      - NETDATA_CLAIM_URL=https://app.netdata.cloud
+      - NETDATA_CLAIM_ROOMS=netdata-rooms
+      - NETDATA_CLAIM_PROXY=
+      - NETDATA_CLAIM_EXTRA=
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:19999/api/v1/info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Session Service Monitoring
+  netdata-session-service:
+    image: netdata/netdata:latest
+    container_name: netdata-session-service
+    hostname: netdata-session-service
+    ports:
+      - "19992:19999"
+    volumes:
+      - netdata_session_service_config:/etc/netdata
+      - netdata_session_service_lib:/var/lib/netdata
+      - netdata_session_service_cache:/var/cache/netdata
+      - netdata_session_service_log:/var/log/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - NETDATA_CLAIM_TOKEN=netdata-claim-token
+      - NETDATA_CLAIM_URL=https://app.netdata.cloud
+      - NETDATA_CLAIM_ROOMS=netdata-rooms
+      - NETDATA_CLAIM_PROXY=
+      - NETDATA_CLAIM_EXTRA=
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:19999/api/v1/info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Metering Service Monitoring
+  netdata-metering-service:
+    image: netdata/netdata:latest
+    container_name: netdata-metering-service
+    hostname: netdata-metering-service
+    ports:
+      - "19991:19999"
+    volumes:
+      - netdata_metering_service_config:/etc/netdata
+      - netdata_metering_service_lib:/var/lib/netdata
+      - netdata_metering_service_cache:/var/cache/netdata
+      - netdata_metering_service_log:/var/log/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - NETDATA_CLAIM_TOKEN=netdata-claim-token
+      - NETDATA_CLAIM_URL=https://app.netdata.cloud
+      - NETDATA_CLAIM_ROOMS=netdata-rooms
+      - NETDATA_CLAIM_PROXY=
+      - NETDATA_CLAIM_EXTRA=
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:19999/api/v1/info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Execution Service Monitoring
+  netdata-execution-service:
+    image: netdata/netdata:latest
+    container_name: netdata-execution-service
+    hostname: netdata-execution-service
+    ports:
+      - "19990:19999"
+    volumes:
+      - netdata_execution_service_config:/etc/netdata
+      - netdata_execution_service_lib:/var/lib/netdata
+      - netdata_execution_service_cache:/var/cache/netdata
+      - netdata_execution_service_log:/var/log/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - NETDATA_CLAIM_TOKEN=netdata-claim-token
+      - NETDATA_CLAIM_URL=https://app.netdata.cloud
+      - NETDATA_CLAIM_ROOMS=netdata-rooms
+      - NETDATA_CLAIM_PROXY=
+      - NETDATA_CLAIM_EXTRA=
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:19999/api/v1/info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Agent Registry Monitoring
+  netdata-agent-registry:
+    image: netdata/netdata:latest
+    container_name: netdata-agent-registry
+    hostname: netdata-agent-registry
+    ports:
+      - "19989:19999"
+    volumes:
+      - netdata_agent_registry_config:/etc/netdata
+      - netdata_agent_registry_lib:/var/lib/netdata
+      - netdata_agent_registry_cache:/var/cache/netdata
+      - netdata_agent_registry_log:/var/log/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - NETDATA_CLAIM_TOKEN=netdata-claim-token
+      - NETDATA_CLAIM_URL=https://app.netdata.cloud
+      - NETDATA_CLAIM_ROOMS=netdata-rooms
+      - NETDATA_CLAIM_PROXY=
+      - NETDATA_CLAIM_EXTRA=
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:19999/api/v1/info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  # Parent volumes
+  netdata_config:
+    driver: local
+  netdata_lib:
+    driver: local
+  netdata_cache:
+    driver: local
+  netdata_log:
+    driver: local
+  
+  # API Service volumes
+  netdata_api_config:
+    driver: local
+  netdata_api_lib:
+    driver: local
+  netdata_api_cache:
+    driver: local
+  netdata_api_log:
+    driver: local
+  
+  # Worker Service volumes
+  netdata_worker_config:
+    driver: local
+  netdata_worker_lib:
+    driver: local
+  netdata_worker_cache:
+    driver: local
+  netdata_worker_log:
+    driver: local
+  
+  # Audit Service volumes
+  netdata_audit_config:
+    driver: local
+  netdata_audit_lib:
+    driver: local
+  netdata_audit_cache:
+    driver: local
+  netdata_audit_log:
+    driver: local
+  
+  # Model Gateway volumes
+  netdata_model_gateway_config:
+    driver: local
+  netdata_model_gateway_lib:
+    driver: local
+  netdata_model_gateway_cache:
+    driver: local
+  netdata_model_gateway_log:
+    driver: local
+  
+  # Tool Gateway volumes
+  netdata_tool_gateway_config:
+    driver: local
+  netdata_tool_gateway_lib:
+    driver: local
+  netdata_tool_gateway_cache:
+    driver: local
+  netdata_tool_gateway_log:
+    driver: local
+  
+  # Tenant Manager volumes
+  netdata_tenant_manager_config:
+    driver: local
+  netdata_tenant_manager_lib:
+    driver: local
+  netdata_tenant_manager_cache:
+    driver: local
+  netdata_tenant_manager_log:
+    driver: local
+  
+  # Session Service volumes
+  netdata_session_service_config:
+    driver: local
+  netdata_session_service_lib:
+    driver: local
+  netdata_session_service_cache:
+    driver: local
+  netdata_session_service_log:
+    driver: local
+  
+  # Metering Service volumes
+  netdata_metering_service_config:
+    driver: local
+  netdata_metering_service_lib:
+    driver: local
+  netdata_metering_service_cache:
+    driver: local
+  netdata_metering_service_log:
+    driver: local
+  
+  # Execution Service volumes
+  netdata_execution_service_config:
+    driver: local
+  netdata_execution_service_lib:
+    driver: local
+  netdata_execution_service_cache:
+    driver: local
+  netdata_execution_service_log:
+    driver: local
+  
+  # Agent Registry volumes
+  netdata_agent_registry_config:
+    driver: local
+  netdata_agent_registry_lib:
+    driver: local
+  netdata_agent_registry_cache:
+    driver: local
+  netdata_agent_registry_log:
+    driver: local

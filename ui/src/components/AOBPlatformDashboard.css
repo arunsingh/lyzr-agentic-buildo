@@ -1,0 +1,391 @@
+/* AOB Platform Dashboard Styles */
+.aob-dashboard {
+  height: 100vh;
+  background: #f0f2f5;
+}
+
+.dashboard-sider {
+  background: #001529;
+}
+
+.logo {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #002140;
+  margin-bottom: 16px;
+}
+
+.logo h2 {
+  color: white;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.dashboard-header {
+  background: white;
+  padding: 0 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+}
+
+.header-content h1 {
+  margin: 0;
+  color: #262626;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.dashboard-content {
+  padding: 24px;
+  overflow-y: auto;
+}
+
+/* Dashboard Stats */
+.dashboard-content .ant-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.dashboard-content .ant-statistic-title {
+  color: #8c8c8c;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.dashboard-content .ant-statistic-content {
+  color: #262626;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+/* Progress Bars */
+.dashboard-content .ant-progress {
+  margin-bottom: 16px;
+}
+
+.dashboard-content .ant-progress-text {
+  color: #262626;
+  font-weight: 500;
+}
+
+/* Trace List */
+.trace-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.trace-item {
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s;
+}
+
+.trace-item:hover {
+  background-color: #fafafa;
+}
+
+.trace-item:last-child {
+  border-bottom: none;
+}
+
+.trace-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.trace-service {
+  font-weight: 600;
+  color: #262626;
+  font-size: 14px;
+}
+
+.trace-status {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.trace-status.success {
+  background: #f6ffed;
+  color: #52c41a;
+  border: 1px solid #b7eb8f;
+}
+
+.trace-status.error {
+  background: #fff2f0;
+  color: #ff4d4f;
+  border: 1px solid #ffccc7;
+}
+
+.trace-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.trace-operation {
+  color: #8c8c8c;
+  font-size: 12px;
+}
+
+.trace-duration {
+  color: #8c8c8c;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Monitoring Content */
+.monitoring-content {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.metrics-container,
+.traces-container,
+.alerts-container {
+  min-height: 600px;
+}
+
+.monitoring-content .ant-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.monitoring-content iframe {
+  border-radius: 4px;
+}
+
+/* Tabs */
+.monitoring-content .ant-tabs-tab {
+  font-weight: 500;
+}
+
+.monitoring-content .ant-tabs-tab-active {
+  color: #1890ff;
+}
+
+.monitoring-content .ant-tabs-ink-bar {
+  background: #1890ff;
+}
+
+/* Alerts */
+.dashboard-content .ant-alert {
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.dashboard-content .ant-alert-message {
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .dashboard-header {
+    padding: 0 16px;
+  }
+  
+  .header-content {
+    flex-direction: column;
+    gap: 16px;
+    height: auto;
+    padding: 16px 0;
+  }
+  
+  .header-content h1 {
+    font-size: 18px;
+  }
+  
+  .dashboard-content {
+    padding: 16px;
+  }
+  
+  .monitoring-content {
+    padding: 16px;
+  }
+  
+  .trace-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .trace-details {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}
+
+@media (max-width: 576px) {
+  .dashboard-sider {
+    position: fixed;
+    z-index: 1000;
+    height: 100vh;
+  }
+  
+  .dashboard-content {
+    margin-left: 0;
+  }
+  
+  .logo h2 {
+    font-size: 16px;
+  }
+  
+  .header-content h1 {
+    font-size: 16px;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .aob-dashboard {
+    background: #141414;
+  }
+  
+  .dashboard-header {
+    background: #1f1f1f;
+    border-bottom: 1px solid #303030;
+  }
+  
+  .header-content h1 {
+    color: #ffffff;
+  }
+  
+  .dashboard-content {
+    background: #141414;
+  }
+  
+  .monitoring-content {
+    background: #1f1f1f;
+  }
+  
+  .dashboard-content .ant-card {
+    background: #1f1f1f;
+    border: 1px solid #303030;
+  }
+  
+  .dashboard-content .ant-statistic-title {
+    color: #8c8c8c;
+  }
+  
+  .dashboard-content .ant-statistic-content {
+    color: #ffffff;
+  }
+  
+  .trace-item {
+    border-bottom-color: #303030;
+  }
+  
+  .trace-item:hover {
+    background-color: #262626;
+  }
+  
+  .trace-service {
+    color: #ffffff;
+  }
+  
+  .trace-operation,
+  .trace-duration {
+    color: #8c8c8c;
+  }
+}
+
+/* Loading States */
+.dashboard-content .ant-card-loading {
+  min-height: 200px;
+}
+
+.dashboard-content .ant-skeleton {
+  padding: 16px;
+}
+
+/* Animations */
+.trace-item {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dashboard-content .ant-card {
+  animation: slideIn 0.3s ease-in-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Custom Scrollbars */
+.trace-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.trace-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.trace-list::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.trace-list::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Focus States */
+.dashboard-content .ant-btn:focus {
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.dashboard-content .ant-card:focus-within {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Print Styles */
+@media print {
+  .dashboard-sider,
+  .dashboard-header {
+    display: none;
+  }
+  
+  .dashboard-content {
+    padding: 0;
+    margin: 0;
+  }
+  
+  .dashboard-content .ant-card {
+    box-shadow: none;
+    border: 1px solid #d9d9d9;
+  }
+}

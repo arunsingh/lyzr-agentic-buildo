@@ -1,0 +1,5 @@
+# Netdata API Key for AOB Platform
+# Generated on: Thu Oct 16 05:46:22 IST 2025
+# Use this key for authentication between Netdata nodes
+
+NETDATA_API_KEY=1cb2fd85fec6e55d28eebf054033f0459e0aee21e2fdf764aa5b25e6d99e7db8

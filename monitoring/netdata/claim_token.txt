@@ -1,0 +1,5 @@
+# Netdata Claim Token for AOB Platform
+# Generated on: Thu Oct 16 05:46:22 IST 2025
+# Use this token to claim your Netdata nodes
+
+NETDATA_CLAIM_TOKEN=861aa6c41ab09553277c9249493bc656a773f895fef6eab972fa152a26d3c1a1

@@ -1,0 +1,65 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+
+  memory_limiter:
+    limit_mib: 512
+    spike_limit_mib: 128
+    check_interval: 5s
+
+  resource:
+    attributes:
+      - key: environment
+        value: production
+        action: upsert
+
+  span:
+    name:
+      to_attributes:
+        rules:
+          - "^/api/v1/(?P<service>[^/]+)/(?P<operation>[^/]+)"
+        separator: "."
+
+exporters:
+  jaeger:
+    endpoint: jaeger:14250
+    tls:
+      insecure: true
+
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    namespace: "aob"
+    const_labels:
+      environment: "production"
+
+  logging:
+    loglevel: debug
+
+  otlp:
+    endpoint: http://jaeger:14268/api/traces
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource, span]
+      exporters: [jaeger, logging]
+
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [prometheus, logging]
+
+  extensions: []
