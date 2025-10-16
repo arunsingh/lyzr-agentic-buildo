@@ -1,7 +1,6 @@
 # Unified AOB Platform Netdata Configuration
 # Consolidates monitoring for all services into a single dashboard
 
-version: '3.8'
 
 services:
   # Main Netdata Parent (Unified Dashboard)

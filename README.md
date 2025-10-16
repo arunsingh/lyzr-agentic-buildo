@@ -585,6 +585,57 @@ Values (`charts/agentic-orch/values.yaml`) include optional sidecars:
 3) Apply `deploy/argocd/applicationset.yaml` (tweak cluster/namespace/owner)
 4) Sync apps; verify API exposed
 
+## Git workflow & releases
+
+### Branching model
+- `main`: always releasable, protected (required checks; no direct pushes)
+- `develop` (optional): integration branch for features (if you prefer GitFlow)
+- `feature/<short-desc>`: new work (branch off `main` or `develop`)
+- `release/<x.y.z>`: stabilization branch for a release
+- `hotfix/<x.y.z>`: urgent fixes branched from the latest tag and merged back
+
+### Commit conventions (Conventional Commits)
+- Format: `type(scope): short summary`
+- Types: `feat`, `fix`, `docs`, `chore`, `refactor`, `perf`, `test`, `build`, `ci`
+- Examples:
+  - `feat(api): add /sessions/{id}/replay endpoint`
+  - `fix(worker): handle kafka reconnect on broker restart`
+  - `docs(readme): add orchestrator troubleshooting steps`
+
+### Pull requests
+- Small, focused PRs; include description, screenshots/logs for runtime changes
+- Required checks: lint, unit tests, build; optionally e2e or compose up smoke
+- At least 1 reviewer; squash merge to keep a clean history
+
+### Versioning (SemVer)
+- Use Semantic Versioning: `MAJOR.MINOR.PATCH`
+  - `MAJOR`: breaking changes to public APIs or on-disk schemas
+  - `MINOR`: backward-compatible features and improvements
+  - `PATCH`: backward-compatible bug fixes and docs-only changes
+
+### Tagging & releases
+- Tag format: `vX.Y.Z` (e.g., `v1.3.0`)
+- Create tag and push:
+  ```bash
+  git checkout main && git pull
+  git tag -a v1.3.0 -m "AOB v1.3.0"
+  git push origin v1.3.0
+  ```
+- CI on tag:
+  - build and push all service images with tag `vX.Y.Z` and `latest`
+  - publish Helm chart with version `X.Y.Z`
+  - generate and attach SDK artifacts (py/ts) to GitHub Release
+  - generate SBOM, sign images (cosign), run vuln scans
+
+### Changelog
+- Keep `CHANGELOG.md` (generated from Conventional Commits or curated)
+- Sections per release: Features, Fixes, Docs, Breaking changes, Security
+
+### Branch protection (recommended)
+- Require PRs, status checks, and code owners on `main` (and `release/*`)
+- Require linear history (squash), signed commits/tags (optional)
+- Enforce CODEOWNERS for sensitive paths (policies/, charts/, docker/)
+
 ## Extending
 - Add real Postgres/Kafka by switching to `PostgresEventStore` and `KafkaBus` in your API init.
 - Implement `tool-gateway` and `model-gateway` services.
