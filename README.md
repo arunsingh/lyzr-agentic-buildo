@@ -291,6 +291,69 @@ Services:
 - Kafka: `localhost:9092`
 - Redis: `localhost:6379`
 
+## 🔧 Unified Stack Orchestrator (one command)
+
+Bring up core infra (Zookeeper → Kafka → Postgres/Redis/OPA/Keycloak), applications, and unified monitoring (Netdata parent + children) in correct order. Prints a consolidated runtime status.
+
+```bash
+cd /Users/aruns/agentic-orchestrn-buildo
+chmod +x run-all.sh
+
+# Start everything
+./run-all.sh up
+
+# Check consolidated status (infra, apps, monitoring)
+./run-all.sh status
+
+# Stop everything
+./run-all.sh down
+```
+
+If any ports are reported in-use, force-stop known stacks then retry:
+
+```bash
+docker compose -f monitoring/netdata/docker-compose.unified.yml down -v
+docker compose -f docker/docker-compose.yml down -v
+./run-all.sh up && ./run-all.sh status
+```
+
+Key URLs:
+- Unified Netdata: http://localhost:19999
+- API health: http://localhost:8000/health
+- Audit health: http://localhost:8001/health
+- Per‑service Netdata dashboards: 19998..19989
+
+## 📈 Monitoring & SRE
+
+- Unified Netdata compose at `monitoring/netdata/docker-compose.unified.yml` (parent + one child per service)
+- Healthchecks added to all services; orchestrator aggregates RED/USE signals
+- SLO/SLI/SLA baselines:
+  - API availability 99.95%, p95 ≤ 500ms, error rate < 0.5%
+  - Execution p95 ≤ 3s (20B) / ≤ 10s (70–120B)
+
+See also:
+- `UNIFIED_MONITORING_DASHBOARD.md`
+- `UNIFIED_PLATFORM_README.md`
+- `UNIFIED_PLATFORM_SUMMARY.md`
+
+## 🎨 UI Performance Stack
+
+- React 18 + TypeScript + Vite + Tailwind
+- New components: `ui/src/components/UnifiedMonitoringDashboard.tsx`, Enhanced Workflow/Session viewers
+- Core Web Vitals targets: LCP < 2.5s, FID < 100ms, CLS < 0.1
+
+## 🏗️ Terraform IaC (dev/stage/prod)
+
+Infrastructure blueprints under `terraform/`:
+- VPC, EKS, RDS (Postgres), ElastiCache (Redis), MSK (Kafka), S3, KMS
+
+```bash
+cd terraform
+terraform init
+terraform apply -var environment=dev
+```
+
+
 Notes:
 - Kafka/Zookeeper use Confluent images (`confluentinc/cp-kafka:7.6.1`, `confluentinc/cp-zookeeper:7.6.1`). The broker advertises `PLAINTEXT://kafka:9092` inside the compose network and is mapped to `localhost:9092` on the host.
 - The outbox worker is enabled and publishes to Kafka when Postgres and Kafka are healthy.
@@ -536,3 +599,54 @@ Values (`charts/agentic-orch/values.yaml`) include optional sidecars:
 - Kafka pull errors: we use Confluent images; ensure `docker compose pull` succeeds or check network proxy. If you previously used Bitnami tags, run `docker compose down -v` to clear.
 - OIDC token validation fails: verify Keycloak is running, realm/client configured correctly, and `OIDC_ISSUER_URL` matches your setup.
 - JWKS fetch errors: check network connectivity to Keycloak and verify the issuer URL is correct.
+
+### Unified Orchestrator bring-up issues (ports, Docker socket, health)
+
+Do this exactly, from repo root:
+
+1) Clean any manual uvicorns
+- macOS:
+```bash
+lsof -ti tcp:8000 | xargs -r kill -9
+lsof -ti tcp:8001 | xargs -r kill -9
+```
+
+2) Ensure Docker Desktop is running and CLI can use the socket
+- open Docker Desktop; confirm:
+```bash
+docker version && docker compose version
+```
+
+3) Bring stack down/up in order and show status
+```bash
+./run-all.sh down
+./run-all.sh up
+./run-all.sh status
+```
+
+If any ports are still in use, force-stop stacks and retry:
+```bash
+docker compose -f monitoring/netdata/docker-compose.unified.yml down -v
+docker compose -f docker/docker-compose.yml down -v
+./run-all.sh up
+./run-all.sh status
+```
+
+Quick health checks (optional):
+```bash
+curl -sf http://localhost:19999/api/v1/info && echo "Netdata OK"
+curl -sf http://localhost:8000/health && echo "API OK" || echo "API DOWN"
+curl -sf http://localhost:8001/health && echo "Audit OK" || echo "Audit DOWN"
+```
+
+Notes
+- Duplicate volumes in `docker/docker-compose.yml` fixed; single top‑level `volumes:` retained.
+- If you see "permission denied" on Docker socket, re‑open a login shell or run from a terminal with Docker privileges.
+- If API shows 401 for protected routes, that’s expected until a valid OIDC token is supplied. Public `/health` should be 200.
+- Optional: install `jq` for nicer status parsing: `brew install jq`.
+
+What success looks like
+- `./run-all.sh status` shows “Up (healthy)” or “Up” for Zookeeper, Kafka, Postgres, Redis, OPA, Keycloak, app services, and Netdata.
+- Unified dashboard: `http://localhost:19999`
+- API health: `http://localhost:8000/health`
+- Audit health: `http://localhost:8001/health`
